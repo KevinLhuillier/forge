@@ -1,6 +1,5 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import Link from "next/link"
 import {
     Dumbbell,
     LayoutDashboard,
@@ -13,42 +12,78 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+
+import { prisma } from "@/prisma/client"
+import MovementCard from "@/components/MovementCard";
+import SkillList from "@/components/SkillList"
 
 export default async function Dashboard() {
     // 1. Vérification de l'authentification
     const cookieStore = await cookies()
-    const isAuth = cookieStore.get("forge_auth")
+    const authCookie = cookieStore.get("forge_auth")
 
-    if (!isAuth) {
+    if (!authCookie) {
         redirect("/login")
     }
 
-    // 2. Fausse donnée (Mock) en attendant la liaison avec Prisma
-    const user = {
-        name: "Athlète",
-        level: 4,
-        xp: 2450,
-        nextLevelXp: 3000,
+    // L'ID dans le cookie est une string, on le transforme en nombre entier
+    const userId = authCookie.value;
+
+
+
+    // Récupération de l'utilisateur ET de tous ses mouvements en une seule requête
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+            skills: {
+                include: {
+                    skill: {
+                        include: {
+                            stages: true // On inclut les paliers pour trouver le texte de l'objectif
+                        }
+                    }
+                }
+            }
+        }
+    })
+
+    // Si l'utilisateur n'est pas trouvé en base (compte supprimé ou erreur)
+    if (!user) {
+        redirect("/login")
     }
 
-    // Calcul du pourcentage pour la barre de progression
-    const xpPercentage = Math.round((user.xp / user.nextLevelXp) * 100)
+    // 3. Récupération de l'objectif d'XP (le niveau suivant)
+    const nextLevelData = await prisma.xpLevel.findUnique({
+        where: { level: user.level + 1 },
+    })
 
-    const pendingMovements = [
-        { id: 1, name: "Thrusters", level: 1, objective: "29kg - 5 reps" },
-        { id: 2, name: "Double Unders", level: 3, objective: "50 reps unbroken" },
-        { id: 3, name: "Muscle-ups (Bar)", level: 2, objective: "3 reps" },
-    ]
+    // Si l'utilisateur est au niveau max (50), il n'y a pas de niveau suivant
+    const nextLevelXp = nextLevelData ? nextLevelData.xp : user.xp
+
+    // Calcul du pourcentage pour la barre de progression (limité à 100%)
+    const rawPercentage = nextLevelData ? Math.round((user.xp / nextLevelXp) * 100) : 100
+    const xpPercentage = Math.min(rawPercentage, 100)
+
+    // Le nom à afficher (on utilise une valeur par défaut au cas où il n'y ait pas de nom)
+    const displayName = user.name || "Athlète"
+
+    // Formatage des données pour le composant client
+    const movements = user.skills.map((userSkill) => {
+        // On cherche l'étape exacte qui correspond au niveau actuel du joueur
+        const currentStageInfo = userSkill.skill.stages.find(
+            (s) => s.stage === userSkill.stage
+        )
+
+        return {
+            id: userSkill.skillId,
+            name: userSkill.skill.name,
+            type: userSkill.skill.type, // Weightlifting, Gym ou Cardio
+            level: userSkill.stage,
+            // Si l'étape existe on affiche le label, sinon c'est qu'il a tout fini !
+            objective: currentStageInfo ? currentStageInfo.stageLabel : "Niveau Maximum atteint 🎉",
+        }
+    })
 
     return (
         <div className="flex min-h-screen w-full bg-slate-50">
@@ -86,11 +121,7 @@ export default async function Dashboard() {
                 {/* Bouton de déconnexion */}
                 <div>
                     <form action="/api/auth/logout" method="POST">
-                        <Button
-                            type="submit"
-                            variant="ghost"
-                            className="w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
+                        <Button type="submit" variant="ghost" className="w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-50">
                             <LogOut className="w-4 h-4" />
                             Se déconnecter
                         </Button>
@@ -109,16 +140,16 @@ export default async function Dashboard() {
                         <div className="flex items-center gap-4">
                             <Avatar className="h-16 w-16 border-2 border-slate-100">
                                 <AvatarFallback className="bg-slate-900 text-white text-xl">
-                                    {user.name.charAt(0)}
+                                    {displayName.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
                             <div>
                                 <h1 className="text-2xl font-bold text-slate-900">
-                                    Bonjour, {user.name}
+                                    Bonjour, {displayName}
                                 </h1>
                                 <p className="text-slate-500 flex items-center gap-2">
                                     <Trophy className="w-4 h-4 text-yellow-500" />
-                                    Niveau {user.level}
+                                    Niveau {user.level} • {user.rank}
                                 </p>
                             </div>
                         </div>
@@ -127,7 +158,7 @@ export default async function Dashboard() {
                         <div className="w-64 space-y-2">
                             <div className="flex justify-between text-sm font-medium text-slate-600">
                                 <span>Expérience</span>
-                                <span>{user.xp} / {user.nextLevelXp} XP</span>
+                                <span>{user.xp} / {nextLevelXp} XP</span>
                             </div>
                             <Progress value={xpPercentage} className="h-3" />
                         </div>
@@ -137,39 +168,19 @@ export default async function Dashboard() {
                 {/* CONTENU PRINCIPAL : LISTE DES CARTES */}
                 <div className="p-8">
                     <div className="max-w-5xl mx-auto space-y-6">
+                        {/* LISTE DES COMPÉTENCES */}
+                        <div className="p-8">
+                            <div className="max-w-5xl mx-auto space-y-6">
 
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-xl font-semibold text-slate-900">
-                                Objectifs du jour
-                            </h2>
+                                <h2 className="text-xl font-semibold text-slate-900">
+                                    Objectifs du jour
+                                </h2>
+
+                                {/* On délègue l'affichage et les filtres à notre composant Client */}
+                                <SkillList movements={movements} />
+
+                            </div>
                         </div>
-
-                        {/* Grille des mouvements */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {pendingMovements.map((movement) => (
-                                <Card key={movement.id} className="flex flex-col">
-                                    <CardHeader className="pb-3">
-                                        <div className="flex justify-between items-start">
-                                            <CardTitle className="text-lg">{movement.name}</CardTitle>
-                                            <Badge variant="secondary">Lvl {movement.level}</Badge>
-                                        </div>
-                                        <CardDescription>Objectif à valider</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="flex-1">
-                                        <div className="bg-slate-50 rounded-md p-3 border text-center font-medium text-slate-700">
-                                            {movement.objective}
-                                        </div>
-                                    </CardContent>
-                                    <CardFooter>
-                                        <Button className="w-full gap-2">
-                                            <Check className="w-4 h-4" />
-                                            Valider l&apos;objectif
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            ))}
-                        </div>
-
                     </div>
                 </div>
             </main>

@@ -30,11 +30,25 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(body.password, 10);
 
+    // 1. On récupère TOUS les mouvements (skills) disponibles dans la base
+    const allSkills = await prisma.skill.findMany({
+        select: { id: true } // On ne prend que l'ID pour optimiser la requête
+    });
+
+    // 2. On prépare le tableau de liaison (le stage de départ est 1)
+    const userSkillsData = allSkills.map((skill) => ({
+        skillId: skill.id,
+        stage: 1,
+    }));
+
     const newUser = await prisma.user.create({
         data: {
             name: body.name,
             email: body.email,
             hashedPassword,
+            skills: {
+                create: userSkillsData
+            }
         }
     });
 
