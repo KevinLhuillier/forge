@@ -42,7 +42,7 @@ export default function MovementCard({ movement }: { movement: MovementData }) {
                 if (data.leveledUp) {
                     toast.success(`🎉 LEVEL UP ! Tu as atteint le niveau ${data.newLevel} !`, {
                         style: {
-                            background: '#22c55e', // Vert franc
+                            background: '#0f873b', // Vert
                             color: 'white',
                             border: 'none'
                         },
