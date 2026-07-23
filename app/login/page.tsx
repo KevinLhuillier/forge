@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Link from "next/link";
 
 export default function LoginPage() {
     const router = useRouter()
@@ -67,7 +68,9 @@ export default function LoginPage() {
                         Enter your email below to login to your account
                     </CardDescription>
                     <CardAction>
-                        <Button variant="link">Sign Up</Button>
+                        <Link href="/register" passHref>
+                            <Button variant="link" type="button">Sign Up</Button>
+                        </Link>
                     </CardAction>
                 </CardHeader>
 
