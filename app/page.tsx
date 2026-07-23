@@ -86,8 +86,11 @@ export default async function Dashboard() {
                 {/* Bouton de déconnexion */}
                 <div>
                     <form action="/api/auth/logout" method="POST">
-                        {/* Note: Il faudra créer cette route pour effacer le cookie */}
-                        <Button variant="ghost" className="w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-50">
+                        <Button
+                            type="submit"
+                            variant="ghost"
+                            className="w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
                             <LogOut className="w-4 h-4" />
                             Se déconnecter
                         </Button>
