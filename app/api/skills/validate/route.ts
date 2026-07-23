@@ -61,6 +61,9 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        // On vérifie s'il y a eu un changement de niveau
+        const hasLeveledUp = newLevel > user.level;
+
         // 4. Transaction de mise à jour (les deux s'exécutent en même temps de façon sécurisée)
         await prisma.$transaction([
             prisma.userSkill.update({
@@ -81,7 +84,11 @@ export async function POST(request: NextRequest) {
             })
         ]);
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({
+            success: true,
+            leveledUp: hasLeveledUp,
+            newLevel: newLevel
+        });
 
     } catch (error) {
         console.error("Erreur lors de la validation :", error);

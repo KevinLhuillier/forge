@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -36,14 +37,26 @@ export default function MovementCard({ movement }: { movement: MovementData }) {
             })
 
             if (res.ok) {
+                const data = await res.json()
+                // Si le joueur a monté de niveau, on affiche la popup verte !
+                if (data.leveledUp) {
+                    toast.success(`🎉 LEVEL UP ! Tu as atteint le niveau ${data.newLevel} !`, {
+                        style: {
+                            background: '#22c55e', // Vert franc
+                            color: 'white',
+                            border: 'none'
+                        },
+                        duration: 5000 // La popup reste 5 secondes
+                    })
+                }
                 // Rafraîchit les données du Server Component (Dashboard)
                 // La barre d'XP et les données de la carte vont se mettre à jour instantanément
                 router.refresh()
             } else {
-                console.error("Erreur lors de la validation")
+                toast.error("Erreur lors de la validation")
             }
         } catch (err) {
-            console.error(err)
+            toast.error("Erreur de connexion au serveur")
         } finally {
             // On enlève l'état de chargement
             setIsLoading(false)
