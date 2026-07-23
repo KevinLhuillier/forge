@@ -13,14 +13,85 @@ datasource db {
 }
 
 model User {
-  id             String    @id @default(cuid())
+  id             String  @id @default(cuid())
   name           String?
-  username       String?   @unique
-  email          String?   @unique
-  emailVerified  DateTime?
+  email          String? @unique
+  level          Int     @default(1)
+  xp             Int     @default(0)
+  rank           String  @default("Scaled")
   hashedPassword String?
-  image          String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relations
+  skills UserSkill[]
+
+  // Le nom exact de la table dans MySQL
+  @@map("users")
+}
+
+// ==========================================
+// 2. COMPÉTENCES (SKILLS)
+// ==========================================
+model Skill {
+  id   Int    @id @map("skill_id")
+  name String
+  type String // Weightlifting, Gym, Cardio
+
+  // Relations
+  stages SkillStage[]
+  users  UserSkill[]
+
+  @@map("skills")
+}
+
+// ==========================================
+// 3. ÉTAPES DES COMPÉTENCES (SKILLS_STAGES)
+// ==========================================
+model SkillStage {
+  skillId    Int    @map("skill_id")
+  stage      Int
+  stageLabel String @map("stage_label")
+
+  // Relation vers la table Skill
+  skill Skill @relation(fields: [skillId], references: [id])
+
+  // Clé primaire composite
+  @@id([skillId, stage])
+  @@map("skills_stages")
+}
+
+// ==========================================
+// 4. LIAISON UTILISATEURS / COMPÉTENCES (USERS_SKILLS)
+// ==========================================
+model UserSkill {
+  userId  String @map("user_id")
+  skillId Int    @map("skill_id")
+  stage   Int    @default(0)
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id])
+  skill Skill @relation(fields: [skillId], references: [id])
+
+  // Clé primaire composite
+  @@id([userId, skillId])
+  @@map("users_skills")
+}
+
+// ==========================================
+// 5. SYSTÈME D'EXPÉRIENCE (XP_LEVEL & XP_STAGE)
+// ==========================================
+model XpLevel {
+  level Int @id
+  xp    Int
+
+  @@map("xp_level")
+}
+
+model XpStage {
+  stage Int @id
+  xp    Int
+
+  @@map("xp_stage")
 }
