@@ -40,9 +40,17 @@ export default function MovementCard({ movement }: { movement: MovementData }) {
                 const data = await res.json()
                 // Si le joueur a monté de niveau, on affiche la popup verte !
                 if (data.leveledUp) {
-                    toast.success(`🎉 LEVEL UP ! Tu as atteint le niveau ${data.newLevel} !`, {
+                    // Message par défaut
+                    let toastMessage = `🎉 LEVEL UP ! Tu as atteint le niveau ${data.newLevel} !`
+
+                    // Message spécial si changement de grade
+                    if (data.rankedUp) {
+                        toastMessage = `🔥 PROMOTION ! Niveau ${data.newLevel} atteint. Tu deviens un athlète ${data.newRank} !`
+                    }
+
+                    toast.success(toastMessage, {
                         style: {
-                            background: '#0f873b', // Vert
+                            background: data.rankedUp ? '#f59e0b' : '#0f873b', // Orange ou Vert
                             color: 'white',
                             border: 'none'
                         },

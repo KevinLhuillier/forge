@@ -61,8 +61,18 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        let newRank = user.rank;
+        if (newLevel >= 35) {
+            newRank = "Rx";
+        } else if (newLevel >= 20) {
+            newRank = "Inter";
+        } else {
+            newRank = "Scaled";
+        }
+
         // On vérifie s'il y a eu un changement de niveau
         const hasLeveledUp = newLevel > user.level;
+        const hasRankedUp = newRank !== user.rank;
 
         // 4. Transaction de mise à jour (les deux s'exécutent en même temps de façon sécurisée)
         await prisma.$transaction([
@@ -79,7 +89,8 @@ export async function POST(request: NextRequest) {
                 where: { id: userId },
                 data: {
                     xp: newTotalXp,       // Nouvel XP total
-                    level: newLevel       // Nouveau niveau (s'il a up)
+                    level: newLevel,
+                    rank: newRank         // Nouveau niveau (s'il a up)
                 }
             })
         ]);
@@ -87,7 +98,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
             success: true,
             leveledUp: hasLeveledUp,
-            newLevel: newLevel
+            rankedUp: hasRankedUp,
+            newLevel: newLevel,
+            newRank: newRank
         });
 
     } catch (error) {
