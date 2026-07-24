@@ -53,17 +53,30 @@ export default async function Dashboard() {
         redirect("/login")
     }
 
-    // 3. Récupération de l'objectif d'XP (le niveau suivant)
+    //  On récupère le palier d'XP du niveau actuel de l'utilisateur
+    // (S'il est niveau 1, son palier de base est 0)
+    const currentLevelData = user.level === 1
+        ? { xp: 0 }
+        : await prisma.xpLevel.findUnique({ where: { level: user.level } })
+
+    //  On récupère l'objectif d'XP (le niveau suivant)
     const nextLevelData = await prisma.xpLevel.findUnique({
         where: { level: user.level + 1 },
     })
 
-    // Si l'utilisateur est au niveau max (50), il n'y a pas de niveau suivant
+    //  Calcul des valeurs de base
+    const baseLevelXp = currentLevelData ? currentLevelData.xp : 0
     const nextLevelXp = nextLevelData ? nextLevelData.xp : user.xp
 
-    // Calcul du pourcentage pour la barre de progression (limité à 100%)
-    const rawPercentage = nextLevelData ? Math.round((user.xp / nextLevelXp) * 100) : 100
-    const xpPercentage = Math.min(rawPercentage, 100)
+    //  Calcul de l'XP "relatif" (progression uniquement dans le niveau en cours)
+    const xpGainedInCurrentLevel = user.xp - baseLevelXp
+    const xpNeededForNextLevel = nextLevelXp - baseLevelXp
+
+    // Calcul du pourcentage (limité entre 0 et 100%)
+    const rawPercentage = nextLevelData
+        ? Math.round((xpGainedInCurrentLevel / xpNeededForNextLevel) * 100)
+        : 100
+    const xpPercentage = Math.max(0, Math.min(rawPercentage, 100))
 
     // Le nom à afficher (on utilise une valeur par défaut au cas où il n'y ait pas de nom)
     const displayName = user.name || "Athlète"
@@ -157,8 +170,9 @@ export default async function Dashboard() {
                         {/* Barre d'XP */}
                         <div className="w-64 space-y-2">
                             <div className="flex justify-between text-sm font-medium text-slate-600">
-                                <span>Expérience</span>
-                                <span>{user.xp} / {nextLevelXp} XP</span>
+                                <span>Progression Niv. {user.level}</span>
+                                {/* On affiche l'XP relatif au lieu de l'XP total */}
+                                <span>{xpGainedInCurrentLevel} / {xpNeededForNextLevel} XP</span>
                             </div>
                             <Progress value={xpPercentage} className="h-3" />
                         </div>
