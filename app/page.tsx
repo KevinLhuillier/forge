@@ -10,13 +10,14 @@ import {
     Trophy
 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 import { prisma } from "@/prisma/client"
 import MovementCard from "@/components/MovementCard";
 import SkillList from "@/components/SkillList"
+import Link from "next/link";
 
 export default async function Dashboard() {
     // 1. Vérification de l'authentification
@@ -116,18 +117,27 @@ export default async function Dashboard() {
 
                     {/* Liens */}
                     <nav className="space-y-2">
-                        <Button variant="secondary" className="w-full justify-start gap-3">
+                        {/* Lien vers le Tableau de bord */}
+                        <Link
+                            href="/"
+                            className={buttonVariants({ variant: "secondary", className: "w-full justify-start gap-3" })}
+                        >
                             <LayoutDashboard className="w-4 h-4" />
                             Tableau de bord
-                        </Button>
+                        </Link>
+                        {/* Bouton Mouvements (sans lien pour l'instant) */}
                         <Button variant="ghost" className="w-full justify-start gap-3">
                             <Dumbbell className="w-4 h-4" />
                             Mouvements
                         </Button>
-                        <Button variant="ghost" className="w-full justify-start gap-3">
+                        {/* Lien vers les Paramètres */}
+                        <Link
+                            href="/settings"
+                            className={buttonVariants({ variant: "ghost", className: "w-full justify-start gap-3" })}
+                        >
                             <Settings className="w-4 h-4" />
                             Paramètres
-                        </Button>
+                        </Link>
                     </nav>
                 </div>
 
