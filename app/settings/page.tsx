@@ -1,16 +1,7 @@
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import Link from "next/link"
-import {
-    Dumbbell,
-    LayoutDashboard,
-    Settings,
-    LogOut,
-    Flame
-} from "lucide-react"
-
-import { Button, buttonVariants } from "@/components/ui/button"
 import ResetProfileButton from "@/components/ResetProfileButton"
+import Sidebar from "@/components/Sidebar";
 
 export default async function SettingsPage() {
     const cookieStore = await cookies()
@@ -24,49 +15,7 @@ export default async function SettingsPage() {
         <div className="flex min-h-screen w-full bg-slate-50">
 
             {/* SIDEBAR */}
-            <aside className="w-64 flex-col justify-between hidden md:flex border-r bg-white p-4">
-                <div>
-                    <div className="flex items-center gap-3 px-2 mb-8">
-                        <div className="bg-slate-900 p-2 rounded-lg">
-                            <Flame className="w-6 h-6 text-white" />
-                        </div>
-                        <span className="text-xl font-bold tracking-tight">Forge</span>
-                    </div>
-
-                    <nav className="space-y-2">
-                        {/* Lien vers le Tableau de bord */}
-                        <Link
-                            href="/"
-                            className={buttonVariants({ variant: "ghost", className: "w-full justify-start gap-3" })}
-                        >
-                            <LayoutDashboard className="w-4 h-4" />
-                            Tableau de bord
-                        </Link>
-                        {/* Bouton Mouvements (sans lien pour l'instant) */}
-                        <Button variant="ghost" className="w-full justify-start gap-3">
-                            <Dumbbell className="w-4 h-4" />
-                            Mouvements
-                        </Button>
-                        {/* Lien vers les Paramètres */}
-                        <Link
-                            href="/settings"
-                            className={buttonVariants({ variant: "secondary", className: "w-full justify-start gap-3" })}
-                        >
-                            <Settings className="w-4 h-4" />
-                            Paramètres
-                        </Link>
-                    </nav>
-                </div>
-
-                <div>
-                    <form action="/api/auth/logout" method="POST">
-                        <Button type="submit" variant="ghost" className="w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-50">
-                            <LogOut className="w-4 h-4" />
-                            Se déconnecter
-                        </Button>
-                    </form>
-                </div>
-            </aside>
+            <Sidebar />
 
             {/* MAIN CONTENT */}
             <main className="flex-1 flex flex-col h-screen overflow-y-auto p-8">
