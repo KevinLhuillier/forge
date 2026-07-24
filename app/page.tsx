@@ -89,15 +89,15 @@ export default async function Dashboard() {
 
     return (
         // 1. On passe en flex-col sur mobile, et flex-row sur PC
-        <div className="flex flex-col md:flex-row min-h-screen w-full bg-slate-50">
+        <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-slate-50 overflow-hidden">
 
             <Sidebar />
 
-            <main className="flex-1 flex flex-col h-screen overflow-y-auto">
+            <main className="flex-1 flex flex-col overflow-y-auto">
 
-                {/* 2. HEADER : on réduit le padding sur mobile et on empile avec flex-col */}
-                <header className="bg-white border-b px-4 md:px-8 py-4 md:py-6">
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between max-w-5xl mx-auto gap-6 md:gap-4">
+                {/* HEADER : sticky top-0 et z-10 pour qu'il reste fixé au scroll et passe au-dessus des cartes */}
+                <header className="sticky top-0 z-10 bg-white border-b px-4 md:px-8 py-4 md:py-6">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between max-w-5xl mx-auto gap-4">
 
                         <div className="flex items-center gap-4">
                             <Avatar className="h-14 w-14 md:h-16 md:w-16 border-2 border-slate-100">
@@ -105,18 +105,21 @@ export default async function Dashboard() {
                                     {displayName.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
-                            <div>
-                                <h1 className="text-xl md:text-2xl font-bold text-slate-900">
+                            <div className="flex flex-col justify-center">
+                                {/* On cache le texte Bonjour sur mobile, on l'affiche sur tablette/PC (hidden md:block) */}
+                                <h1 className="hidden md:block text-2xl font-bold text-slate-900">
                                     Bonjour, {displayName}
                                 </h1>
-                                <p className="text-slate-500 flex items-center gap-2 text-sm md:text-base">
-                                    <Trophy className="w-4 h-4 text-yellow-500" />
+
+                                {/* On grossit le niveau et le rang sur mobile, et on le remet à la normale sur PC */}
+                                <p className="flex items-center gap-2 text-lg font-bold text-slate-800 md:text-base md:font-normal md:text-slate-500">
+                                    <Trophy className="w-5 h-5 md:w-4 md:h-4 text-yellow-500" />
                                     Niveau {user.level} • {user.rank}
                                 </p>
                             </div>
                         </div>
 
-                        {/* La barre d'XP prend 100% de la largeur sur mobile */}
+                        {/* Barre d'XP */}
                         <div className="w-full md:w-64 space-y-2">
                             <div className="flex justify-between text-sm font-medium text-slate-600">
                                 <span>Progression Niv. {user.level}</span>

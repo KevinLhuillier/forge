@@ -46,7 +46,7 @@ export default function MovementCard({ movement }: { movement: MovementData }) {
                     }
                     toast.success(toastMessage, {
                         style: {
-                            background: data.rankedUp ? '#f59e0b' : '#22c55e',
+                            background: data.rankedUp ? '#f59e0b' : '#000000',
                             color: 'white', border: 'none'
                         },
                         duration: data.rankedUp ? 8000 : 5000
