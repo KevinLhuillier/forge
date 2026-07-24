@@ -11,6 +11,7 @@ export type MovementData = {
     type: string
     level: number
     objective: string
+    xpReward: number
 }
 
 export default function SkillList({ movements }: { movements: MovementData[] }) {

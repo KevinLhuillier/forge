@@ -42,6 +42,9 @@ export default async function Dashboard() {
         redirect("/login")
     }
 
+    // On récupère la table de correspondance des gains d'XP
+    const allXpStages = await prisma.xpStage.findMany();
+
     //  On récupère le palier d'XP du niveau actuel de l'utilisateur
     // (S'il est niveau 1, son palier de base est 0)
     const currentLevelData = user.level === 1
@@ -77,6 +80,10 @@ export default async function Dashboard() {
             (s) => s.stage === userSkill.stage
         )
 
+        // On cherche combien d'XP rapporte le niveau actuel
+        const xpData = allXpStages.find((x) => x.stage === userSkill.stage)
+        const xpReward = xpData ? xpData.xp : 0
+
         return {
             id: userSkill.skillId,
             name: userSkill.skill.name,
@@ -84,6 +91,7 @@ export default async function Dashboard() {
             level: userSkill.stage,
             // Si l'étape existe on affiche le label, sinon c'est qu'il a tout fini !
             objective: currentStageInfo ? currentStageInfo.stageLabel : "Niveau Maximum atteint 🎉",
+            xpReward: xpReward,
         }
     })
 

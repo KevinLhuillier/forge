@@ -152,7 +152,12 @@ export default function MovementCard({ movement }: { movement: MovementData }) {
                     ) : (
                         <Check className="w-4 h-4" />
                     )}
-                    {isLoading ? "Chargement..." : isMaxLevel ? "Validé" : "Valider l'objectif"}
+                    {isLoading
+                        ? "Chargement..."
+                        : isMaxLevel
+                            ? "Validé"
+                            : `+${movement.xpReward} xp` // <-- Le nouveau texte est ici !
+                    }
                 </Button>
             </CardFooter>
         </Card>
