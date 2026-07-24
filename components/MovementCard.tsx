@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Loader2 } from "lucide-react"
+import { Check, Loader2, Undo2 } from "lucide-react" // <-- Ajout de Undo2
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,16 +15,16 @@ import {
     CardTitle,
 } from "@/components/ui/card"
 
-// Import du type défini dans SkillList
 import type { MovementData } from "./SkillList"
 
 export default function MovementCard({ movement }: { movement: MovementData }) {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
 
-    // Si l'utilisateur a dépassé le stage 20, il a terminé le mouvement
     const isMaxLevel = movement.level > 20
+    const isMinLevel = movement.level <= 1 // On détecte si on est au tout premier niveau
 
+    // --- FONCTION POUR MONTER DE NIVEAU ---
     const handleValidate = async () => {
         if (isMaxLevel) return
         setIsLoading(true)
@@ -38,27 +38,20 @@ export default function MovementCard({ movement }: { movement: MovementData }) {
 
             if (res.ok) {
                 const data = await res.json()
-                // Si le joueur a monté de niveau, on affiche la popup verte !
-                if (data.leveledUp) {
-                    // Message par défaut
-                    let toastMessage = `🎉 LEVEL UP ! Tu as atteint le niveau ${data.newLevel} !`
 
-                    // Message spécial si changement de grade
+                if (data.leveledUp) {
+                    let toastMessage = `🎉 LEVEL UP ! Tu as atteint le niveau ${data.newLevel} !`
                     if (data.rankedUp) {
                         toastMessage = `🔥 PROMOTION ! Niveau ${data.newLevel} atteint. Tu deviens un athlète ${data.newRank} !`
                     }
-
                     toast.success(toastMessage, {
                         style: {
-                            background: data.rankedUp ? '#f59e0b' : '#0f873b', // Orange ou Vert
-                            color: 'white',
-                            border: 'none'
+                            background: data.rankedUp ? '#f59e0b' : '#22c55e',
+                            color: 'white', border: 'none'
                         },
-                        duration: 5000 // La popup reste 5 secondes
+                        duration: data.rankedUp ? 8000 : 5000
                     })
                 }
-                // Rafraîchit les données du Server Component (Dashboard)
-                // La barre d'XP et les données de la carte vont se mettre à jour instantanément
                 router.refresh()
             } else {
                 toast.error("Erreur lors de la validation")
@@ -66,7 +59,44 @@ export default function MovementCard({ movement }: { movement: MovementData }) {
         } catch (err) {
             toast.error("Erreur de connexion au serveur")
         } finally {
-            // On enlève l'état de chargement
+            setIsLoading(false)
+        }
+    }
+
+    // --- FONCTION POUR DESCENDRE DE NIVEAU ---
+    const handleDowngrade = async () => {
+        if (isMinLevel) return
+        setIsLoading(true)
+
+        try {
+            const res = await fetch("/api/skills/downgrade", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ skillId: movement.id }),
+            })
+
+            if (res.ok) {
+                const data = await res.json()
+
+                // Notifications de perte de niveau/rang
+                if (data.rankedDown) {
+                    toast.error(`Rétrogradation... Tu repasses au rang ${data.newRank}.`, {
+                        duration: 5000
+                    })
+                } else if (data.leveledDown) {
+                    toast(`Tu es redescendu au niveau ${data.newLevel}.`, {
+                        style: { background: '#ef4444', color: 'white', border: 'none' }, // Rouge
+                        duration: 4000
+                    })
+                }
+
+                router.refresh()
+            } else {
+                toast.error("Erreur lors de l'annulation")
+            }
+        } catch (err) {
+            toast.error("Erreur de connexion au serveur")
+        } finally {
             setIsLoading(false)
         }
     }
@@ -95,9 +125,22 @@ export default function MovementCard({ movement }: { movement: MovementData }) {
                 </div>
             </CardContent>
 
-            <CardFooter>
+            {/* On utilise un flex gap-2 pour aligner les deux boutons */}
+            <CardFooter className="flex gap-2">
+                {/* Bouton d'annulation (Rétrograder) */}
                 <Button
-                    className="w-full gap-2 transition-all"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleDowngrade}
+                    disabled={isLoading || isMinLevel}
+                    title="Annuler le dernier niveau"
+                >
+                    <Undo2 className="w-4 h-4 text-slate-600" />
+                </Button>
+
+                {/* Bouton de validation (Avancer) */}
+                <Button
+                    className="flex-1 gap-2 transition-all"
                     onClick={handleValidate}
                     disabled={isLoading || isMaxLevel}
                     variant={isMaxLevel ? "outline" : "default"}
@@ -109,7 +152,7 @@ export default function MovementCard({ movement }: { movement: MovementData }) {
                     ) : (
                         <Check className="w-4 h-4" />
                     )}
-                    {isLoading ? "Validation..." : isMaxLevel ? "Validé" : "Valider l'objectif"}
+                    {isLoading ? "Chargement..." : isMaxLevel ? "Validé" : "Valider l'objectif"}
                 </Button>
             </CardFooter>
         </Card>
