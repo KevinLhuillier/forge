@@ -12,22 +12,21 @@ export default async function SettingsPage() {
     }
 
     return (
-        <div className="flex min-h-screen w-full bg-slate-50">
+        // On passe en flex-col sur mobile
+        <div className="flex flex-col md:flex-row min-h-screen w-full bg-slate-50">
 
-            {/* SIDEBAR */}
             <Sidebar />
 
-            {/* MAIN CONTENT */}
-            <main className="flex-1 flex flex-col h-screen overflow-y-auto p-8">
+            {/* On ajuste le padding (p-4 sur mobile, p-8 sur PC) */}
+            <main className="flex-1 flex flex-col h-screen overflow-y-auto p-4 md:p-8">
                 <div className="max-w-3xl mx-auto w-full space-y-8">
 
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900">Paramètres</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Paramètres</h1>
                         <p className="text-slate-500 mt-2">Gérez les préférences de votre compte.</p>
                     </div>
 
-                    {/* ZONE DE DANGER */}
-                    <div className="border border-red-200 bg-red-50 rounded-xl p-6 space-y-4 mt-8">
+                    <div className="border border-red-200 bg-red-50 rounded-xl p-4 md:p-6 space-y-4 mt-8">
                         <div>
                             <h3 className="text-lg font-semibold text-red-900">Zone de danger</h3>
                             <p className="text-sm text-red-700 mt-1">
@@ -42,7 +41,6 @@ export default async function SettingsPage() {
 
                 </div>
             </main>
-
         </div>
     )
 }

@@ -88,70 +88,56 @@ export default async function Dashboard() {
     })
 
     return (
-        <div className="flex min-h-screen w-full bg-slate-50">
+        // 1. On passe en flex-col sur mobile, et flex-row sur PC
+        <div className="flex flex-col md:flex-row min-h-screen w-full bg-slate-50">
 
-            {/* ========================================== */}
-            {/* BARRE DE NAVIGATION LATÉRALE (SIDEBAR)     */}
-            {/* ========================================== */}
             <Sidebar />
 
-            {/* ========================================== */}
-            {/* PARTIE CENTRALE (MAIN CONTENT)             */}
-            {/* ========================================== */}
             <main className="flex-1 flex flex-col h-screen overflow-y-auto">
 
-                {/* BANDEAU UTILISATEUR */}
-                <header className="bg-white border-b px-8 py-6">
-                    <div className="flex items-center justify-between max-w-5xl mx-auto">
+                {/* 2. HEADER : on réduit le padding sur mobile et on empile avec flex-col */}
+                <header className="bg-white border-b px-4 md:px-8 py-4 md:py-6">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between max-w-5xl mx-auto gap-6 md:gap-4">
+
                         <div className="flex items-center gap-4">
-                            <Avatar className="h-16 w-16 border-2 border-slate-100">
+                            <Avatar className="h-14 w-14 md:h-16 md:w-16 border-2 border-slate-100">
                                 <AvatarFallback className="bg-slate-900 text-white text-xl">
                                     {displayName.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                             </Avatar>
                             <div>
-                                <h1 className="text-2xl font-bold text-slate-900">
+                                <h1 className="text-xl md:text-2xl font-bold text-slate-900">
                                     Bonjour, {displayName}
                                 </h1>
-                                <p className="text-slate-500 flex items-center gap-2">
+                                <p className="text-slate-500 flex items-center gap-2 text-sm md:text-base">
                                     <Trophy className="w-4 h-4 text-yellow-500" />
                                     Niveau {user.level} • {user.rank}
                                 </p>
                             </div>
                         </div>
 
-                        {/* Barre d'XP */}
-                        <div className="w-64 space-y-2">
+                        {/* La barre d'XP prend 100% de la largeur sur mobile */}
+                        <div className="w-full md:w-64 space-y-2">
                             <div className="flex justify-between text-sm font-medium text-slate-600">
                                 <span>Progression Niv. {user.level}</span>
-                                {/* On affiche l'XP relatif au lieu de l'XP total */}
                                 <span>{xpGainedInCurrentLevel} / {xpNeededForNextLevel} XP</span>
                             </div>
                             <Progress value={xpPercentage} className="h-3" />
                         </div>
+
                     </div>
                 </header>
 
-                {/* CONTENU PRINCIPAL : LISTE DES CARTES */}
-                <div className="p-8">
+                {/* 3. LISTE DES COMPÉTENCES : padding ajusté */}
+                <div className="p-4 md:p-8">
                     <div className="max-w-5xl mx-auto space-y-6">
-                        {/* LISTE DES COMPÉTENCES */}
-                        <div className="p-8">
-                            <div className="max-w-5xl mx-auto space-y-6">
-
-                                <h2 className="text-xl font-semibold text-slate-900">
-                                    Objectifs du jour
-                                </h2>
-
-                                {/* On délègue l'affichage et les filtres à notre composant Client */}
-                                <SkillList movements={movements} />
-
-                            </div>
-                        </div>
+                        <h2 className="text-xl font-semibold text-slate-900">
+                            Objectifs du jour
+                        </h2>
+                        <SkillList movements={movements} />
                     </div>
                 </div>
             </main>
-
         </div>
     )
 }
