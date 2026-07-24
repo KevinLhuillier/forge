@@ -20,6 +20,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet"
+import Logo from "@/components/Logo";
 
 // 1. CORRECTION : On sort NavContent du composant principal
 // On lui passe pathname et une fonction optionnelle pour fermer le menu
@@ -34,11 +35,8 @@ function NavContent({
         <div className="flex flex-col h-full justify-between">
             <div className="space-y-6">
 
-                <div className="hidden md:flex items-center gap-3 px-2 mb-2">
-                    <div className="bg-slate-900 p-2 rounded-lg">
-                        <Flame className="w-6 h-6 text-white" />
-                    </div>
-                    <span className="text-xl font-bold tracking-tight">Forge</span>
+                <div className="mb-8">
+                    <Logo />
                 </div>
 
                 <nav className="space-y-2">

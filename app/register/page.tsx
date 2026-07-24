@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Logo from "@/components/Logo";
 
 export default function RegisterPage() {
     const router = useRouter()
@@ -63,7 +64,12 @@ export default function RegisterPage() {
     }
 
     return (
-        <main className="flex min-h-screen items-center justify-center p-4 bg-slate-50">
+        <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4">
+
+            <div className="mb-8">
+                <Logo />
+            </div>
+
             <Card className="w-full max-w-sm">
                 <CardHeader>
                     <CardTitle>Créer un compte</CardTitle>
