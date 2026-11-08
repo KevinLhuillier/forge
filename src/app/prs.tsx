@@ -3,7 +3,6 @@ import { ChevronLeft, Lock } from 'lucide-react-native';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -88,9 +87,7 @@ export default function PrsScreen() {
     <View style={styles.root}>
       <ScreenBackground />
       <SafeAreaView style={styles.root}>
-        <KeyboardAvoidingView
-          style={styles.root}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={styles.root} behavior="padding">
           <View style={styles.header}>
             <Pressable
               accessibilityRole="button"

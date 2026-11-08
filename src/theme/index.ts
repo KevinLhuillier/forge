@@ -14,6 +14,26 @@ export const colors = {
   rx: '#FF7A1A',
 };
 
+/** Todo has its own look, apart from Forge's: deep indigo, one orange. */
+export const todoColors = {
+  background: '#20213A',
+  surface: '#2B2C49',
+  surfaceRaised: '#35365A',
+  line: '#3D3E5F',
+  text: '#FFFFFF',
+  textMuted: '#A9AAC6',
+  onAccent: '#20213A',
+  accent: '#F58220',
+  accentLight: '#FFA24A',
+  danger: '#FF7A90',
+};
+
+export const todoFonts = {
+  regular: 'Ubuntu_400Regular',
+  medium: 'Ubuntu_500Medium',
+  bold: 'Ubuntu_700Bold',
+};
+
 export const fonts = {
   display: 'Orbitron_700Bold',
   displayHeavy: 'Orbitron_900Black',

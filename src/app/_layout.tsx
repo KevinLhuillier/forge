@@ -4,6 +4,7 @@ import {
   Rajdhani_600SemiBold,
   Rajdhani_700Bold,
 } from '@expo-google-fonts/rajdhani';
+import { Ubuntu_400Regular, Ubuntu_500Medium, Ubuntu_700Bold } from '@expo-google-fonts/ubuntu';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -13,7 +14,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { ProgressProvider } from '@/lib/progress';
-import { colors } from '@/theme';
+import { colors, todoColors } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,6 +37,9 @@ function RootNavigator() {
     Rajdhani_500Medium,
     Rajdhani_600SemiBold,
     Rajdhani_700Bold,
+    Ubuntu_400Regular,
+    Ubuntu_500Medium,
+    Ubuntu_700Bold,
   });
   const { session, ready } = useAuth();
   const loading = (!fontsLoaded && !fontError) || !ready;
@@ -58,6 +62,15 @@ function RootNavigator() {
         {/* Guards switch screens automatically when the session changes. */}
         <Stack.Protected guard={signedIn}>
           <Stack.Screen name="index" />
+          <Stack.Screen name="forge" />
+          <Stack.Screen
+            name="todo"
+            options={{ contentStyle: { backgroundColor: todoColors.background } }}
+          />
+          <Stack.Screen
+            name="calendar"
+            options={{ contentStyle: { backgroundColor: todoColors.background } }}
+          />
           <Stack.Screen name="skill/[id]" />
           <Stack.Screen name="prs" />
           <Stack.Screen name="stats" />
