@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.expo/
+expo-env.d.ts
+*.tsbuildinfo
+
+# Environment: never commit real keys
+.env
+.env.*
+!.env.example
+
+# Generated native projects (Continuous Native Generation)
+/ios
+/android
+
+# Supabase CLI
+supabase/.temp/
+supabase/.branches/
+
+.DS_Store
+Thumbs.db
+.idea/

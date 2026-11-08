@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Forge",
+    "slug": "forge",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "forge",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#06080F",
+    "ios": {
+      "bundleIdentifier": "com.forge.crossfit"
+    },
+    "android": {
+      "package": "com.forge.crossfit",
+      "adaptiveIcon": {
+        "backgroundColor": "#06080F",
+        "foregroundImage": "./assets/images/icon-foreground.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#06080F",
+          "image": "./assets/images/icon-foreground.png",
+          "imageWidth": 240
+        }
+      ],
+      "expo-font",
+      "expo-status-bar"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
