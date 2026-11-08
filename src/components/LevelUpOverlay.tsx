@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { ActionButton, Hex } from '@/components/hud';
 import type { ValidationResult } from '@/lib/progress';
@@ -22,13 +22,13 @@ export function LevelUpOverlay({
 
   return (
     <Animated.View entering={FadeIn.duration(180)} style={styles.backdrop}>
-      <Animated.View entering={ZoomIn.springify().damping(14)} style={styles.badge}>
+      <View style={styles.badge}>
         <Hex size={150} fill={colors.surface} stroke={rank.color} strokeWidth={4}>
           <Text style={[styles.badgeLevel, { color: rank.color }]}>
             {skill.mastered ? 'MAX' : skill.level}
           </Text>
         </Hex>
-      </Animated.View>
+      </View>
 
       <Text style={[styles.title, { color: rank.color }]}>
         {skill.mastered ? 'SKILL MASTERED' : 'LEVEL UP'}

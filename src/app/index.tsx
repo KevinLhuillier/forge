@@ -27,6 +27,13 @@ export default function Home() {
   // The XP is enough for the next rank, but a domain is holding it back.
   const blockingDomains =
     athlete.xp_level > global ? athlete.domains.filter((d) => d.average < global + 1) : [];
+  // One goal per category: its open skill furthest behind (first listed on a tie).
+  const goals = athlete.domains.flatMap((domain) => {
+    const open = skills.filter((s) => s.domainId === domain.id && !s.locked && !s.mastered);
+    if (open.length === 0) return [];
+    const skill = open.reduce((lowest, s) => (s.level < lowest.level ? s : lowest));
+    return [{ domainName: domain.name, skill }];
+  });
 
   return (
     <View style={styles.root}>
@@ -104,10 +111,23 @@ export default function Home() {
                 </Panel>
               ) : null}
 
+              {goals.length > 0 ? (
+                <View style={styles.goals}>
+                  <Text style={styles.eyebrow}>RECOMMENDED GOALS</Text>
+                  <View style={styles.goalsRow}>
+                    {goals.map(({ domainName, skill }) => (
+                      <GoalTile key={skill.id} domainName={domainName} skill={skill} />
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
               {athlete.domains.map((domain) => {
                 const domainLevel = Math.floor(domain.average);
                 const domainRank = rankForLevel(domainLevel);
                 const open = openDomain === domain.id;
+                // With a list open, every category stands out from the skill cards around it.
+                const anyOpen = openDomain !== null;
                 const Chevron = open ? ChevronUp : ChevronDown;
                 return (
                   <View key={domain.id} style={styles.domain}>
@@ -120,19 +140,32 @@ export default function Home() {
                         setOpenDomain(open ? null : domain.id);
                       }}
                       style={({ pressed }) => pressed && styles.pressed}>
-                      <Panel accent={domainRank.color} style={styles.card}>
-                        <Hex size={56} fill={colors.surfaceRaised} stroke={domainRank.color}>
+                      <Panel
+                        accent={anyOpen ? colors.onAccent : domainRank.color}
+                        style={[
+                          styles.card,
+                          anyOpen && {
+                            backgroundColor: domainRank.color,
+                            borderColor: domainRank.color,
+                          },
+                        ]}>
+                        <Hex
+                          size={56}
+                          fill={colors.surfaceRaised}
+                          stroke={anyOpen ? colors.onAccent : domainRank.color}>
                           <Text style={[styles.cardLevel, { color: domainRank.color }]}>
                             {domainLevel}
                           </Text>
                         </Hex>
                         <View style={styles.cardInfo}>
-                          <Text style={styles.domainName} numberOfLines={1}>
+                          <Text
+                            style={[styles.domainName, anyOpen && styles.onColorText]}
+                            numberOfLines={1}>
                             {domain.name.toUpperCase()}
                           </Text>
-                          <RankTag level={domainLevel} />
+                          <RankTag level={domainLevel} onColor={anyOpen} />
                         </View>
-                        <Chevron size={24} color={colors.textMuted} />
+                        <Chevron size={24} color={anyOpen ? colors.onAccent : colors.textMuted} />
                       </Panel>
                     </Pressable>
                     {open
@@ -163,6 +196,37 @@ export default function Home() {
         </ScrollView>
       </SafeAreaView>
     </View>
+  );
+}
+
+function GoalTile({ domainName, skill }: { domainName: string; skill: SkillProgress }) {
+  const router = useRouter();
+  const mission = skill.levels.find((item) => item.level === skill.level);
+  const rank = rankForLevel(skill.level);
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Goal: ${skill.name}`}
+      onPress={() => {
+        haptics.tap();
+        router.push({ pathname: '/skill/[id]', params: { id: skill.id } });
+      }}
+      style={({ pressed }) => [styles.goalPressable, pressed && styles.pressed]}>
+      <Panel accent={rank.color} style={styles.goal}>
+        <Text style={styles.goalDomain} numberOfLines={1}>
+          {domainName.toUpperCase()}
+        </Text>
+        <Text style={styles.goalSkill} numberOfLines={2}>
+          {skill.name}
+        </Text>
+        {mission ? (
+          <Text style={styles.goalMission} numberOfLines={2}>
+            {missionText(skill.metric, mission)}
+          </Text>
+        ) : null}
+      </Panel>
+    </Pressable>
   );
 }
 
@@ -235,6 +299,7 @@ const styles = StyleSheet.create({
   domain: { gap: spacing.md },
   domainName: { fontFamily: fonts.display, fontSize: 16, letterSpacing: 2, color: colors.text },
   statsLabel: { flex: 1 },
+  onColorText: { color: colors.onAccent },
   card: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
   cardLevel: { fontFamily: fonts.display, fontSize: 16 },
   cardInfo: { flex: 1, gap: 2 },
@@ -247,4 +312,22 @@ const styles = StyleSheet.create({
   prLinkText: { fontFamily: fonts.display, fontSize: 13, letterSpacing: 1, color: colors.text },
   placement: { gap: spacing.md },
   placementText: { fontFamily: fonts.bodySemi, fontSize: 17, color: colors.text },
+  goals: { gap: spacing.sm },
+  goalsRow: { flexDirection: 'row', gap: spacing.sm },
+  goalPressable: { flex: 1 },
+  goal: { flex: 1, gap: 2, padding: spacing.sm },
+  goalDomain: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    letterSpacing: 0.5,
+    color: colors.textMuted,
+  },
+  goalSkill: {
+    flex: 1,
+    fontFamily: fonts.bodyBold,
+    fontSize: 16,
+    lineHeight: 18,
+    color: colors.text,
+  },
+  goalMission: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.textMuted },
 });

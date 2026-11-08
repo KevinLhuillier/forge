@@ -107,11 +107,13 @@ export function LevelBar({ filled }: { filled: number }) {
   );
 }
 
-export function RankTag({ level }: { level: number }) {
+export function RankTag({ level, onColor }: { level: number; onColor?: boolean }) {
   const rank = rankForLevel(level);
+  // On a background of the rank's own color, the tag switches to dark ink.
+  const color = onColor ? colors.onAccent : rank.color;
   return (
-    <View style={[styles.tag, { borderColor: rank.color }]}>
-      <Text style={[styles.tagText, { color: rank.color }]}>{rank.name.toUpperCase()}</Text>
+    <View style={[styles.tag, { borderColor: color }]}>
+      <Text style={[styles.tagText, { color }]}>{rank.name.toUpperCase()}</Text>
     </View>
   );
 }
