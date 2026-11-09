@@ -144,13 +144,15 @@ export default function CalendarScreen() {
                           haptics.tap();
                           setSheet({ event });
                         }}
-                        style={styles.row}>
+                        style={[styles.row, !!event.list && { borderLeftColor: event.list.color }]}>
                         <View style={styles.rowWhen}>
                           <Text style={styles.rowTime}>{timeLabelOn(event, day)}</Text>
-                          {event.todo_id ? <Text style={styles.rowTag}>Todo</Text> : null}
                         </View>
                         <View style={styles.rowText}>
                           <Text style={styles.rowTitle}>{event.title}</Text>
+                          {event.list ? (
+                            <Text style={styles.rowList}>{event.list.name}</Text>
+                          ) : null}
                           {event.end_date !== event.start_date ? (
                             <Text style={styles.rowDescription}>
                               {formatDue(event.start_date)} → {formatDue(event.end_date)}
@@ -249,10 +251,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: todoColors.line,
+    // Colored for a planned todo; transparent keeps every row aligned.
+    borderLeftWidth: 4,
+    borderLeftColor: 'transparent',
     backgroundColor: todoColors.surfaceRaised,
   },
   rowWhen: { width: 64, gap: 2 },
-  rowTag: { fontFamily: todoFonts.regular, fontSize: 12, color: todoColors.textMuted },
+  rowList: { fontFamily: todoFonts.medium, fontSize: 13, color: todoColors.text },
   rowTime: {
     fontFamily: todoFonts.medium,
     fontSize: 14,

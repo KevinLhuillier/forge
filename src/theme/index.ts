@@ -28,6 +28,17 @@ export const todoColors = {
   danger: '#FF7A90',
 };
 
+/** The colors a todo list can take, all readable under `todoColors.onAccent`. */
+export const listColors = [
+  { name: 'Orange', value: '#F58220' },
+  { name: 'Pink', value: '#FF7A90' },
+  { name: 'Purple', value: '#B08CFF' },
+  { name: 'Blue', value: '#5AA9FF' },
+  { name: 'Teal', value: '#2FD9C4' },
+  { name: 'Green', value: '#7BD65A' },
+  { name: 'Yellow', value: '#FFD24A' },
+];
+
 export const todoFonts = {
   regular: 'Ubuntu_400Regular',
   medium: 'Ubuntu_500Medium',

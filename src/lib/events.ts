@@ -13,12 +13,23 @@ export type EventFields = {
   end_date: string;
   end_time: string | null;
 };
-/** `todo_id` is set when the event is the slot planned for a todo. */
-export type CalendarEvent = EventFields & { id: string; todo_id: string | null };
+type EventRow = EventFields & { id: string; todo_id: string | null };
+/** `todo_id` and `list` are set when the event is the slot planned for a todo. */
+export type CalendarEvent = EventRow & { list: { name: string; color: string } | null };
 
-const COLUMNS = 'id, todo_id, title, description, start_date, start_time, end_date, end_time';
+const COLUMNS =
+  'id, todo_id, title, description, start_date, start_time, end_date, end_time, todos(todo_lists(name, color))';
 
-function unwrap<T>(result: { data: T | null; error: { message: string } | null }): T {
+type FetchedEvent = EventRow & { todos: { todo_lists: CalendarEvent['list'] } | null };
+
+function toEvent({ todos, ...event }: FetchedEvent): CalendarEvent {
+  return { ...event, list: todos?.todo_lists ?? null };
+}
+
+// The client has no generated schema, so it can't type the nested select.
+type Fetched<T> = { data: T | null; error: { message: string } | null };
+
+function unwrap<T>(result: Fetched<T>): T {
   if (result.error) throw new Error(result.error.message);
   return result.data as T;
 }
@@ -26,15 +37,18 @@ function unwrap<T>(result: { data: T | null; error: { message: string } | null }
 // RLS limits every call to the signed-in user's events.
 
 export async function fetchEvents(): Promise<CalendarEvent[]> {
-  return unwrap(await supabase.from('events').select(COLUMNS).order('start_date'));
+  const result = await supabase.from('events').select(COLUMNS).order('start_date');
+  return unwrap(result as unknown as Fetched<FetchedEvent[]>).map(toEvent);
 }
 
 export async function createEvent(fields: EventFields): Promise<CalendarEvent> {
-  return unwrap(await supabase.from('events').insert(fields).select(COLUMNS).single());
+  const result = await supabase.from('events').insert(fields).select(COLUMNS).single();
+  return toEvent(unwrap(result as unknown as Fetched<FetchedEvent>));
 }
 
 export async function updateEvent(id: string, fields: EventFields): Promise<CalendarEvent> {
-  return unwrap(await supabase.from('events').update(fields).eq('id', id).select(COLUMNS).single());
+  const result = await supabase.from('events').update(fields).eq('id', id).select(COLUMNS).single();
+  return toEvent(unwrap(result as unknown as Fetched<FetchedEvent>));
 }
 
 export async function deleteEvent(id: string): Promise<void> {

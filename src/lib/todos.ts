@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-export type TodoList = { id: string; name: string };
+export type TodoList = { id: string; name: string; color: string };
 /** What the user writes on a todo. `due_date` is a local day, as YYYY-MM-DD. */
 export type TodoFields = { title: string; description: string | null; due_date: string | null };
 /** Where a todo sits in the calendar. `time` is null for all day. */
@@ -42,7 +42,7 @@ function unwrap<T>(result: { data: T | null; error: { message: string } | null }
 
 export async function fetchTodoData(): Promise<{ lists: TodoList[]; todos: Todo[] }> {
   const [lists, todos, plans] = await Promise.all([
-    supabase.from('todo_lists').select('id, name').order('created_at'),
+    supabase.from('todo_lists').select('id, name, color').order('created_at'),
     supabase.from('todos').select(TODO_COLUMNS).order('sort_order'),
     supabase
       .from('events')
@@ -77,8 +77,14 @@ export async function fetchTodoData(): Promise<{ lists: TodoList[]; todos: Todo[
   };
 }
 
-export async function createList(name: string): Promise<TodoList> {
-  return unwrap(await supabase.from('todo_lists').insert({ name }).select('id, name').single());
+export async function createList(name: string, color: string): Promise<TodoList> {
+  return unwrap(
+    await supabase.from('todo_lists').insert({ name, color }).select('id, name, color').single(),
+  );
+}
+
+export async function updateList(id: string, name: string, color: string): Promise<void> {
+  unwrap(await supabase.from('todo_lists').update({ name, color }).eq('id', id));
 }
 
 export async function deleteList(id: string): Promise<void> {

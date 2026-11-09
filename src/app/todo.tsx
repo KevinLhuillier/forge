@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Check, ChevronLeft, Plus, X } from 'lucide-react-native';
+import { Check, ChevronLeft, Plus } from 'lucide-react-native';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -8,13 +8,13 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { formatTime } from '@/lib/events';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { ListSheet } from '@/components/ListSheet';
 import { SortableList } from '@/components/SortableList';
 import { TodoAddButton } from '@/components/TodoAddButton';
 import { TodoSheet } from '@/components/TodoSheet';
@@ -28,6 +28,7 @@ import {
   formatDue,
   setTodoDone,
   toDateKey,
+  updateList,
   type Todo,
   type TodoFields,
   type TodoList,
@@ -62,13 +63,12 @@ export default function TodoScreen() {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [attempt, setAttempt] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [composer, setComposer] = useState(false);
-  const [draft, setDraft] = useState('');
+  // The list form: `list` is null when adding a new one.
+  const [listSheet, setListSheet] = useState<{ list: TodoList | null } | null>(null);
   // The todo form: `todo` is null when adding a new one.
   const [sheet, setSheet] = useState<{ todo: Todo | null } | null>(null);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // What a long press asks to delete.
+  // What is waiting for confirmation before being deleted.
   const [confirmList, setConfirmList] = useState(false);
   const [confirmTodo, setConfirmTodo] = useState<Todo | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -140,15 +140,13 @@ export default function TodoScreen() {
     setConfirmTodo(null);
   }
 
-  function openComposer() {
+  function openListSheet(list: TodoList | null) {
     clearTransientState();
-    setComposer(true);
-    setDraft('');
+    setListSheet({ list });
   }
 
   function openSheet(todo: Todo | null) {
     clearTransientState();
-    setComposer(false);
     setSheet({ todo });
   }
 
@@ -171,23 +169,19 @@ export default function TodoScreen() {
     }
   }
 
-  async function submit() {
-    const text = draft.trim();
-    if (!text || saving) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const list = await createList(text);
+  async function saveList(name: string, color: string) {
+    const editing = listSheet?.list;
+    if (editing) {
+      await updateList(editing.id, name, color);
+      setLists((current) =>
+        current.map((list) => (list.id === editing.id ? { ...list, name, color } : list)),
+      );
+    } else {
+      const list = await createList(name, color);
       setLists((current) => [...current, list]);
       setSelectedId(list.id);
-      setComposer(false);
-      setDraft('');
-    } catch {
-      haptics.error();
-      setError(SAVE_ERROR);
-    } finally {
-      setSaving(false);
     }
+    setListSheet(null);
   }
 
   async function toggle(todo: Todo) {
@@ -271,7 +265,7 @@ export default function TodoScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Add a list"
                 hitSlop={12}
-                onPress={openComposer}
+                onPress={() => openListSheet(null)}
                 style={styles.addNew}>
                 <Text style={styles.addNewText}>Add New</Text>
                 <Plus size={13} color={todoColors.textMuted} />
@@ -300,11 +294,14 @@ export default function TodoScreen() {
                           setError(null);
                         }}
                         onLongPress={() => {
-                          haptics.press();
                           setSelectedId(list.id);
-                          setConfirmList(true);
+                          openListSheet(list);
                         }}
-                        style={[styles.chip, selected && styles.chipSelected]}>
+                        style={[
+                          styles.chip,
+                          { borderColor: list.color },
+                          selected && { backgroundColor: list.color },
+                        ]}>
                         <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
                           {list.name}
                         </Text>
@@ -338,8 +335,8 @@ export default function TodoScreen() {
                     />
                     {finished.map((todo) => renderTodo(todo))}
                     <Text style={styles.hint}>
-                      Tap a todo to edit it. Drag its handle to reorder. Hold a todo or a list to
-                      delete it.
+                      Tap a todo to edit it. Drag its handle to reorder. Hold a todo to delete it.
+                      Hold a list to edit it.
                     </Text>
                   </ScrollView>
                 )}
@@ -348,43 +345,10 @@ export default function TodoScreen() {
 
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            {composer ? (
-              <View style={styles.composer}>
-                <TextInput
-                  accessibilityLabel="New list name"
-                  style={styles.input}
-                  value={draft}
-                  onChangeText={setDraft}
-                  placeholder="New list"
-                  placeholderTextColor={todoColors.textMuted}
-                  maxLength={60}
-                  autoFocus
-                  blurOnSubmit={false}
-                  returnKeyType="done"
-                  onSubmitEditing={submit}
-                />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Save"
-                  disabled={!draft.trim() || saving}
-                  onPress={submit}
-                  style={[styles.composerSave, !draft.trim() && styles.disabled]}>
-                  <Check size={22} color={todoColors.text} strokeWidth={3} />
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Close"
-                  hitSlop={8}
-                  onPress={() => setComposer(false)}>
-                  <X size={24} color={todoColors.textMuted} />
-                </Pressable>
-              </View>
-            ) : (
-              <TodoAddButton
-                label={lists.length === 0 ? 'Add a list' : 'Add a todo'}
-                onPress={() => (lists.length === 0 ? openComposer() : openSheet(null))}
-              />
-            )}
+            <TodoAddButton
+              label={lists.length === 0 ? 'Add a list' : 'Add a todo'}
+              onPress={() => (lists.length === 0 ? openListSheet(null) : openSheet(null))}
+            />
 
             {confirmTodo ? (
               <ConfirmDialog
@@ -407,6 +371,19 @@ export default function TodoScreen() {
                   setConfirmList(false);
                   removeActiveList();
                 }}
+              />
+            ) : null}
+
+            {listSheet ? (
+              <ListSheet
+                key={listSheet.list?.id ?? 'new'}
+                list={listSheet.list}
+                onSave={saveList}
+                onDelete={() => {
+                  setListSheet(null);
+                  setConfirmList(true);
+                }}
+                onClose={() => setListSheet(null)}
               />
             ) : null}
 
@@ -485,7 +462,6 @@ function TodoRow({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: todoColors.background },
   fill: { flex: 1 },
-  disabled: { opacity: 0.45 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -540,11 +516,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: todoColors.line,
   },
-  chipSelected: { backgroundColor: todoColors.accent, borderColor: todoColors.accent },
   chipText: { fontFamily: todoFonts.regular, fontSize: 14, color: todoColors.textMuted },
-  chipTextSelected: { fontFamily: todoFonts.bold, color: todoColors.text },
+  chipTextSelected: { fontFamily: todoFonts.bold, color: todoColors.onAccent },
   stack: { flex: 1, paddingHorizontal: spacing.lg, paddingTop: spacing.xxl },
   stackLayer: {
     alignSelf: 'center',
@@ -615,30 +589,5 @@ const styles = StyleSheet.create({
     color: todoColors.danger,
     textAlign: 'center',
     padding: spacing.sm,
-  },
-  composer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.lg,
-    backgroundColor: todoColors.surfaceRaised,
-  },
-  input: {
-    flex: 1,
-    height: 44,
-    paddingHorizontal: spacing.md,
-    borderRadius: 10,
-    backgroundColor: todoColors.background,
-    color: todoColors.text,
-    fontFamily: todoFonts.regular,
-    fontSize: 16,
-  },
-  composerSave: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 22,
-    backgroundColor: todoColors.accent,
   },
 });
