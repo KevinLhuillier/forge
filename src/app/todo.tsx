@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Check, ChevronLeft, Plus, X } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { formatTime } from '@/lib/events';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { SortableList } from '@/components/SortableList';
 import { TodoAddButton } from '@/components/TodoAddButton';
 import { TodoSheet } from '@/components/TodoSheet';
 import {
@@ -22,6 +23,7 @@ import {
   deleteList,
   deleteTodo,
   fetchTodoData,
+  reorderTodos,
   saveTodo,
   formatDue,
   setTodoDone,
@@ -42,6 +44,17 @@ function todayLabel(): string {
   return `${day}.${month}, ${now.toLocaleDateString('en-GB', { weekday: 'short' })}`;
 }
 
+/** 12.11 · 09:00 → 15.11 · 18:00, leaving out what isn't set or doesn't change. */
+function formatPlan(plan: TodoPlan): string {
+  const withTime = (day: string, time: string | null) =>
+    time ? `${day} · ${formatTime(time)}` : day;
+  const start = withTime(formatDue(plan.date), plan.time);
+  if (plan.endDate !== plan.date) {
+    return `${start} → ${withTime(formatDue(plan.endDate), plan.endTime)}`;
+  }
+  return plan.endTime ? `${start} → ${formatTime(plan.endTime)}` : start;
+}
+
 export default function TodoScreen() {
   const router = useRouter();
   const [lists, setLists] = useState<TodoList[]>([]);
@@ -58,6 +71,7 @@ export default function TodoScreen() {
   // What a long press asks to delete.
   const [confirmList, setConfirmList] = useState(false);
   const [confirmTodo, setConfirmTodo] = useState<Todo | null>(null);
+  const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     let stale = false;
@@ -77,10 +91,47 @@ export default function TodoScreen() {
   }, [attempt]);
 
   const active = lists.find((list) => list.id === selectedId) ?? lists[0];
-  // Still to do first, each group in the order it was added.
-  const shown = todos
+  // Still to do first, each group in the list's order.
+  const inList = todos
     .filter((todo) => todo.list_id === active?.id)
-    .sort((a, b) => Number(a.done) - Number(b.done));
+    .sort((a, b) => a.sort_order - b.sort_order);
+  const open = inList.filter((todo) => !todo.done);
+  const finished = inList.filter((todo) => todo.done);
+
+  function renderTodo(todo: Todo, handle?: ReactNode) {
+    return (
+      <TodoRow
+        key={todo.id}
+        todo={todo}
+        handle={handle}
+        onToggle={() => toggle(todo)}
+        onOpen={() => openSheet(todo)}
+        onHold={() => {
+          haptics.press();
+          setConfirmTodo(todo);
+        }}
+      />
+    );
+  }
+
+  async function reorder(openIds: string[]) {
+    const ids = [...openIds, ...finished.map((todo) => todo.id)];
+    const previous = todos;
+    setError(null);
+    setTodos((current) =>
+      current.map((todo) => {
+        const index = ids.indexOf(todo.id);
+        return index < 0 ? todo : { ...todo, sort_order: index + 1 };
+      }),
+    );
+    try {
+      await reorderTodos(ids);
+    } catch {
+      setTodos(previous);
+      haptics.error();
+      setError(SAVE_ERROR);
+    }
+  }
 
   function clearTransientState() {
     haptics.tap();
@@ -112,7 +163,11 @@ export default function TodoScreen() {
     } else if (active) {
       // The sheet stays open: todos are often added several at a time.
       const id = await saveTodo(null, active.id, fields, plan);
-      setTodos((current) => [...current, { id, list_id: active.id, done: false, ...fields, plan }]);
+      setTodos((current) => {
+        const orders = current.filter((t) => t.list_id === active.id).map((t) => t.sort_order);
+        const sort_order = Math.max(0, ...orders) + 1;
+        return [...current, { id, list_id: active.id, done: false, sort_order, ...fields, plan }];
+      });
     }
   }
 
@@ -268,26 +323,23 @@ export default function TodoScreen() {
                   <View style={styles.centered}>
                     <Text style={styles.message}>Create your first list to get started.</Text>
                   </View>
-                ) : shown.length === 0 ? (
+                ) : inList.length === 0 ? (
                   <View style={styles.centered}>
                     <Text style={styles.message}>Nothing to do here yet.</Text>
                   </View>
                 ) : (
-                  <ScrollView contentContainerStyle={styles.rows}>
-                    {shown.map((todo) => (
-                      <TodoRow
-                        key={todo.id}
-                        todo={todo}
-                        onToggle={() => toggle(todo)}
-                        onOpen={() => openSheet(todo)}
-                        onHold={() => {
-                          haptics.press();
-                          setConfirmTodo(todo);
-                        }}
-                      />
-                    ))}
+                  <ScrollView contentContainerStyle={styles.rows} scrollEnabled={!dragging}>
+                    <SortableList
+                      items={open}
+                      labelOf={(todo) => todo.title}
+                      renderItem={renderTodo}
+                      onReorder={reorder}
+                      onDragChange={setDragging}
+                    />
+                    {finished.map((todo) => renderTodo(todo))}
                     <Text style={styles.hint}>
-                      Tap a todo to edit it. Hold a todo or a list to delete it.
+                      Tap a todo to edit it. Drag its handle to reorder. Hold a todo or a list to
+                      delete it.
                     </Text>
                   </ScrollView>
                 )}
@@ -376,11 +428,13 @@ export default function TodoScreen() {
 
 function TodoRow({
   todo,
+  handle,
   onToggle,
   onOpen,
   onHold,
 }: {
   todo: Todo;
+  handle?: ReactNode;
   onToggle: () => void;
   onOpen: () => void;
   onHold: () => void;
@@ -390,12 +444,13 @@ function TodoRow({
 
   return (
     <View style={[styles.row, !todo.done && styles.rowOpen]}>
+      {handle}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Edit ${todo.title}`}
         onPress={onOpen}
         onLongPress={onHold}
-        style={styles.rowMain}>
+        style={[styles.rowMain, !!handle && styles.rowMainWithHandle]}>
         <Text
           style={[styles.rowTitle, todo.done && styles.rowTitleDone, dueNow && styles.rowTitleDue]}>
           {todo.title}
@@ -405,12 +460,7 @@ function TodoRow({
             {todo.description}
           </Text>
         ) : null}
-        {todo.plan ? (
-          <Text style={styles.rowPlan}>
-            Planned {formatDue(todo.plan.date)}
-            {todo.plan.time ? ` · ${formatTime(todo.plan.time)}` : ''}
-          </Text>
-        ) : null}
+        {todo.plan ? <Text style={styles.rowPlan}>Planned {formatPlan(todo.plan)}</Text> : null}
       </Pressable>
       <View style={styles.rowSide}>
         {todo.due_date ? (
@@ -527,6 +577,7 @@ const styles = StyleSheet.create({
     paddingLeft: spacing.lg,
     paddingVertical: spacing.md,
   },
+  rowMainWithHandle: { paddingLeft: spacing.xs },
   rowTitle: { fontFamily: todoFonts.bold, fontSize: 15, color: todoColors.text },
   rowTitleDue: { color: todoColors.danger },
   rowTitleDone: { fontFamily: todoFonts.regular, color: todoColors.textMuted },

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 
 import { MonthPicker } from '@/components/MonthPicker';
-import { formatTime, parseTime } from '@/lib/events';
+import { endAfterStartMove, formatTime, parseTime, slotError } from '@/lib/events';
 import { formatDue, toDateKey, type Todo, type TodoFields, type TodoPlan } from '@/lib/todos';
 import { haptics, spacing, todoColors, todoFonts } from '@/theme';
 
@@ -33,7 +33,12 @@ export function TodoSheet({
   const [planDate, setPlanDate] = useState<string | null>(todo?.plan?.date ?? null);
   const [planTime, setPlanTime] = useState(todo?.plan?.time ? formatTime(todo.plan.time) : '');
   const [planTimeInvalid, setPlanTimeInvalid] = useState(false);
-  const [picking, setPicking] = useState<'due' | 'plan' | null>(null);
+  const [planEnd, setPlanEnd] = useState<string | null>(todo?.plan?.endDate ?? null);
+  const [planEndTime, setPlanEndTime] = useState(
+    todo?.plan?.endTime ? formatTime(todo.plan.endTime) : '',
+  );
+  const [planEndTimeInvalid, setPlanEndTimeInvalid] = useState(false);
+  const [picking, setPicking] = useState<'due' | 'plan' | 'planEnd' | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const titleInput = useRef<ComponentRef<typeof TextInput>>(null);
@@ -48,6 +53,20 @@ export function TodoSheet({
       setError('Use a time like 14:30, or leave it empty for all day.');
       return;
     }
+    const endTime = planDate && planEndTime.trim() ? parseTime(planEndTime) : null;
+    if (planDate && planEndTime.trim() && !endTime) {
+      haptics.error();
+      setPlanEndTimeInvalid(true);
+      setError('Use an end time like 14:30, or leave it empty.');
+      return;
+    }
+    const endDate = planEnd ?? planDate;
+    const invalid = planDate && endDate ? slotError(planDate, time, endDate, endTime) : null;
+    if (invalid) {
+      haptics.error();
+      setError(invalid);
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -57,13 +76,15 @@ export function TodoSheet({
           description: description.trim() || null,
           due_date: due,
         },
-        planDate ? { date: planDate, time } : null,
+        planDate && endDate ? { date: planDate, time, endDate, endTime } : null,
       );
       setTitle('');
       setDescription('');
       setDue(null);
       setPlanDate(null);
       setPlanTime('');
+      setPlanEnd(null);
+      setPlanEndTime('');
       setPicking(null);
       titleInput.current?.focus();
     } catch {
@@ -160,7 +181,11 @@ export function TodoSheet({
               accessibilityLabel="Plan in calendar"
               accessibilityState={{ expanded: picking === 'plan' }}
               onPress={() => {
-                if (!planDate) setPlanDate(due ?? toDateKey(new Date()));
+                if (!planDate) {
+                  const start = due ?? toDateKey(new Date());
+                  setPlanDate(start);
+                  setPlanEnd(start);
+                }
                 setPicking(picking === 'plan' ? null : 'plan');
               }}
               style={styles.dueButton}>
@@ -169,7 +194,7 @@ export function TodoSheet({
                 color={planDate ? todoColors.accent : todoColors.textMuted}
               />
               <Text style={[styles.dueText, !!planDate && styles.dueTextSet]}>
-                {planDate ? `Planned ${formatDue(planDate)}` : 'Plan in calendar'}
+                {planDate ? `Starts ${formatDue(planDate)}` : 'Plan in calendar'}
               </Text>
             </Pressable>
             {planDate ? (
@@ -196,6 +221,10 @@ export function TodoSheet({
                     setPlanDate(null);
                     setPlanTime('');
                     setPlanTimeInvalid(false);
+                    setPlanEnd(null);
+                    setPlanEndTime('');
+                    setPlanEndTimeInvalid(false);
+                    setError(null);
                     setPicking(null);
                   }}>
                   <X size={20} color={todoColors.textMuted} />
@@ -210,6 +239,53 @@ export function TodoSheet({
               onPick={(key) => {
                 haptics.tap();
                 setPlanDate(key);
+                setPlanEnd(endAfterStartMove(planEnd ?? planDate, planDate, key));
+                setError(null);
+                setPicking(null);
+              }}
+            />
+          ) : null}
+
+          {planDate && planEnd ? (
+            <View style={styles.dueRow}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Plan end date"
+                accessibilityState={{ expanded: picking === 'planEnd' }}
+                onPress={() => setPicking(picking === 'planEnd' ? null : 'planEnd')}
+                style={styles.dueButton}>
+                <CalendarClock size={20} color={todoColors.accent} />
+                <Text style={[styles.dueText, styles.dueTextSet]}>Ends {formatDue(planEnd)}</Text>
+              </Pressable>
+              <TextInput
+                accessibilityLabel="Plan end time"
+                style={[
+                  styles.input,
+                  styles.planTime,
+                  styles.planEndTime,
+                  planEndTimeInvalid && styles.inputInvalid,
+                ]}
+                value={planEndTime}
+                onChangeText={(text) => {
+                  setPlanEndTime(text);
+                  setPlanEndTimeInvalid(false);
+                  setError(null);
+                }}
+                placeholder="End"
+                placeholderTextColor={todoColors.textMuted}
+                keyboardType="numbers-and-punctuation"
+                maxLength={5}
+              />
+            </View>
+          ) : null}
+
+          {picking === 'planEnd' && planEnd ? (
+            <MonthPicker
+              value={planEnd}
+              onPick={(key) => {
+                haptics.tap();
+                setPlanEnd(key);
+                setError(null);
                 setPicking(null);
               }}
             />
@@ -270,6 +346,8 @@ const styles = StyleSheet.create({
   inputInvalid: { borderWidth: 1, borderColor: todoColors.danger },
   planControls: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   planTime: { width: 92, textAlign: 'center' },
+  // Lines up with the start time, which has the remove button on its right.
+  planEndTime: { marginRight: 20 + spacing.md },
   error: { fontFamily: todoFonts.medium, fontSize: 14, color: todoColors.danger },
   save: {
     minHeight: 50,

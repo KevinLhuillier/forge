@@ -16,16 +16,18 @@ import { EventSheet } from '@/components/EventSheet';
 import { MonthPicker } from '@/components/MonthPicker';
 import { TodoAddButton } from '@/components/TodoAddButton';
 import {
-  compareEvents,
+  compareEventsOn,
   createEvent,
   deleteEvent,
+  eventDays,
   fetchEvents,
-  formatTime,
+  occursOn,
+  timeLabelOn,
   updateEvent,
   type CalendarEvent,
   type EventFields,
 } from '@/lib/events';
-import { toDateKey } from '@/lib/todos';
+import { formatDue, toDateKey } from '@/lib/todos';
 import { haptics, spacing, todoColors, todoFonts } from '@/theme';
 
 function dayHeading(key: string): string {
@@ -62,15 +64,15 @@ export default function CalendarScreen() {
     };
   }, [attempt]);
 
-  const marked = new Set(events.map((event) => event.event_date));
-  const dayEvents = events.filter((event) => event.event_date === day).sort(compareEvents);
+  const marked = new Set(events.flatMap(eventDays));
+  const dayEvents = events.filter((event) => occursOn(event, day)).sort(compareEventsOn(day));
 
   async function save(fields: EventFields) {
     const editing = sheet?.event;
     const saved = editing ? await updateEvent(editing.id, fields) : await createEvent(fields);
     setEvents((current) => [...current.filter((item) => item.id !== saved.id), saved]);
-    // Show the day the event now sits on.
-    setDay(saved.event_date);
+    // Stay on this day if the event still covers it, otherwise follow the event.
+    if (!occursOn(saved, day)) setDay(saved.start_date);
     setSheet(null);
   }
 
@@ -144,13 +146,16 @@ export default function CalendarScreen() {
                         }}
                         style={styles.row}>
                         <View style={styles.rowWhen}>
-                          <Text style={styles.rowTime}>
-                            {event.start_time ? formatTime(event.start_time) : 'All day'}
-                          </Text>
+                          <Text style={styles.rowTime}>{timeLabelOn(event, day)}</Text>
                           {event.todo_id ? <Text style={styles.rowTag}>Todo</Text> : null}
                         </View>
                         <View style={styles.rowText}>
                           <Text style={styles.rowTitle}>{event.title}</Text>
+                          {event.end_date !== event.start_date ? (
+                            <Text style={styles.rowDescription}>
+                              {formatDue(event.start_date)} → {formatDue(event.end_date)}
+                            </Text>
+                          ) : null}
                           {event.description ? (
                             <Text style={styles.rowDescription} numberOfLines={2}>
                               {event.description}
@@ -246,7 +251,7 @@ const styles = StyleSheet.create({
     borderBottomColor: todoColors.line,
     backgroundColor: todoColors.surfaceRaised,
   },
-  rowWhen: { width: 56, gap: 2 },
+  rowWhen: { width: 64, gap: 2 },
   rowTag: { fontFamily: todoFonts.regular, fontSize: 12, color: todoColors.textMuted },
   rowTime: {
     fontFamily: todoFonts.medium,

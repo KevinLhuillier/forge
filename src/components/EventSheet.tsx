@@ -12,7 +12,14 @@ import {
 
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { MonthPicker } from '@/components/MonthPicker';
-import { formatTime, parseTime, type CalendarEvent, type EventFields } from '@/lib/events';
+import {
+  endAfterStartMove,
+  formatTime,
+  parseTime,
+  slotError,
+  type CalendarEvent,
+  type EventFields,
+} from '@/lib/events';
 import { formatDue } from '@/lib/todos';
 import { haptics, spacing, todoColors, todoFonts } from '@/theme';
 
@@ -33,14 +40,17 @@ export function EventSheet({
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(event?.title ?? '');
-  const [date, setDate] = useState(event?.event_date ?? day);
+  const [date, setDate] = useState(event?.start_date ?? day);
   const [time, setTime] = useState(event?.start_time ? formatTime(event.start_time) : '');
+  const [endDate, setEndDate] = useState(event?.end_date ?? day);
+  const [endTime, setEndTime] = useState(event?.end_time ? formatTime(event.end_time) : '');
   const [description, setDescription] = useState(event?.description ?? '');
-  const [picking, setPicking] = useState(false);
+  const [picking, setPicking] = useState<'start' | 'end' | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timeInvalid, setTimeInvalid] = useState(false);
+  const [endTimeInvalid, setEndTimeInvalid] = useState(false);
   const canSave = !!title.trim() && !saving;
   // A planned todo keeps its title and description from Todo; only its slot is edited here.
   const linked = !!event?.todo_id;
@@ -66,12 +76,27 @@ export function EventSheet({
       setError('Use a time like 14:30, or leave it empty for all day.');
       return;
     }
+    const parsedEnd = endTime.trim() ? parseTime(endTime) : null;
+    if (endTime.trim() && !parsedEnd) {
+      haptics.error();
+      setEndTimeInvalid(true);
+      setError('Use an end time like 14:30, or leave it empty.');
+      return;
+    }
+    const invalid = slotError(date, parsed, endDate, parsedEnd);
+    if (invalid) {
+      haptics.error();
+      setError(invalid);
+      return;
+    }
     run(() =>
       onSave({
         title: title.trim(),
         description: description.trim() || null,
-        event_date: date,
+        start_date: date,
         start_time: parsed,
+        end_date: endDate,
+        end_time: parsedEnd,
       }),
     );
   }
@@ -106,15 +131,15 @@ export function EventSheet({
           <View style={styles.when}>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Event date"
-              accessibilityState={{ expanded: picking }}
-              onPress={() => setPicking(!picking)}
+              accessibilityLabel="Start date"
+              accessibilityState={{ expanded: picking === 'start' }}
+              onPress={() => setPicking(picking === 'start' ? null : 'start')}
               style={styles.dateButton}>
               <CalendarDays size={20} color={todoColors.accent} />
-              <Text style={styles.dateText}>{formatDue(date)}</Text>
+              <Text style={styles.dateText}>Starts {formatDue(date)}</Text>
             </Pressable>
             <TextInput
-              accessibilityLabel="Event time"
+              accessibilityLabel="Start time"
               style={[styles.input, styles.time, timeInvalid && styles.inputInvalid]}
               value={time}
               onChangeText={(text) => {
@@ -129,13 +154,46 @@ export function EventSheet({
             />
           </View>
 
+          <View style={styles.when}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="End date"
+              accessibilityState={{ expanded: picking === 'end' }}
+              onPress={() => setPicking(picking === 'end' ? null : 'end')}
+              style={styles.dateButton}>
+              <CalendarDays size={20} color={todoColors.accent} />
+              <Text style={styles.dateText}>Ends {formatDue(endDate)}</Text>
+            </Pressable>
+            <TextInput
+              accessibilityLabel="End time"
+              style={[styles.input, styles.time, endTimeInvalid && styles.inputInvalid]}
+              value={endTime}
+              onChangeText={(text) => {
+                setEndTime(text);
+                setEndTimeInvalid(false);
+                setError(null);
+              }}
+              placeholder="End time"
+              placeholderTextColor={todoColors.textMuted}
+              keyboardType="numbers-and-punctuation"
+              maxLength={5}
+            />
+          </View>
+
           {picking ? (
             <MonthPicker
-              value={date}
+              key={picking}
+              value={picking === 'start' ? date : endDate}
               onPick={(key) => {
                 haptics.tap();
-                setDate(key);
-                setPicking(false);
+                if (picking === 'start') {
+                  setDate(key);
+                  setEndDate(endAfterStartMove(endDate, date, key));
+                } else {
+                  setEndDate(key);
+                }
+                setError(null);
+                setPicking(null);
               }}
             />
           ) : null}
