@@ -9,10 +9,10 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#06080F",
     "ios": {
-      "bundleIdentifier": "com.forge.crossfit"
+      "bundleIdentifier": "com.kevinlh.forge"
     },
     "android": {
-      "package": "com.forge.crossfit",
+      "package": "com.kevinlh.forge",
       "adaptiveIcon": {
         "backgroundColor": "#06080F",
         "foregroundImage": "./assets/images/icon-foreground.png"
@@ -39,6 +39,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b591e680-2d17-47aa-9c84-97ee9eb8637e"
+      }
+    },
+    "owner": "kevinlh"
   }
 }
