@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Check, ChevronRight, LogOut } from 'lucide-react-native';
+import { Check, ChevronRight, LogOut, Settings } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -21,6 +21,16 @@ export default function Home() {
       <SafeAreaView style={styles.root}>
         <View style={styles.content}>
           <View style={styles.header}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Settings"
+              hitSlop={12}
+              onPress={() => {
+                haptics.tap();
+                router.push('/settings');
+              }}>
+              <Settings size={22} color={colors.textMuted} />
+            </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Sign out"
@@ -82,7 +92,7 @@ export default function Home() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   content: { flex: 1, padding: spacing.lg, gap: spacing.lg },
-  header: { flexDirection: 'row', justifyContent: 'flex-end' },
+  header: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.xl },
   cardPressable: { flex: 1, maxHeight: 220 },
   pressed: { opacity: 0.8 },
   cardInfo: { flex: 1, gap: spacing.xs },

@@ -27,6 +27,7 @@ import {
   type CalendarEvent,
   type EventFields,
 } from '@/lib/events';
+import { refreshRecap } from '@/lib/recap';
 import { formatDue, toDateKey } from '@/lib/todos';
 import { haptics, spacing, todoColors, todoFonts } from '@/theme';
 
@@ -74,6 +75,7 @@ export default function CalendarScreen() {
     // Stay on this day if the event still covers it, otherwise follow the event.
     if (!occursOn(saved, day)) setDay(saved.start_date);
     setSheet(null);
+    refreshRecap();
   }
 
   async function remove() {
@@ -82,6 +84,7 @@ export default function CalendarScreen() {
     await deleteEvent(editing.id);
     setEvents((current) => current.filter((item) => item.id !== editing.id));
     setSheet(null);
+    refreshRecap();
   }
 
   return (

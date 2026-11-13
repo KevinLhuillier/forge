@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { formatTime } from '@/lib/events';
+import { refreshRecap } from '@/lib/recap';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ListSheet } from '@/components/ListSheet';
 import { SortableList } from '@/components/SortableList';
@@ -172,6 +173,7 @@ export default function TodoScreen() {
         current.map((item) => (item.id === editing.id ? { ...item, ...fields, plan } : item)),
       );
       setSheet(null);
+      refreshRecap();
     } else if (active) {
       // The sheet stays open: todos are often added several at a time.
       const id = await saveTodo(null, active.id, fields, plan);
@@ -180,6 +182,7 @@ export default function TodoScreen() {
         const sort_order = Math.max(0, ...orders) + 1;
         return [...current, { id, list_id: active.id, done: false, sort_order, ...fields, plan }];
       });
+      refreshRecap();
     }
   }
 
@@ -196,6 +199,7 @@ export default function TodoScreen() {
       setSelectedId(list.id);
     }
     setListSheet(null);
+    refreshRecap();
   }
 
   async function toggle(todo: Todo) {
@@ -208,6 +212,7 @@ export default function TodoScreen() {
     update(!todo.done);
     try {
       await setTodoDone(todo.id, !todo.done);
+      refreshRecap();
     } catch {
       update(todo.done);
       haptics.error();
@@ -220,6 +225,7 @@ export default function TodoScreen() {
     try {
       await deleteTodo(id);
       setTodos((current) => current.filter((todo) => todo.id !== id));
+      refreshRecap();
     } catch {
       haptics.error();
       setError(SAVE_ERROR);
@@ -234,6 +240,7 @@ export default function TodoScreen() {
       setLists((current) => current.filter((list) => list.id !== active.id));
       setTodos((current) => current.filter((todo) => todo.list_id !== active.id));
       setSelectedId(null);
+      refreshRecap();
     } catch {
       haptics.error();
       setError(SAVE_ERROR);

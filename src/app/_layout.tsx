@@ -10,10 +10,12 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { ProgressProvider } from '@/lib/progress';
+import { clearRecap, refreshRecap } from '@/lib/recap';
 import { colors, todoColors } from '@/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -48,9 +50,23 @@ function RootNavigator() {
     if (!loading) SplashScreen.hide();
   }, [loading]);
 
+  // The evening recap follows the data, so it is rebuilt each time the app comes back.
+  const signedIn = !!session;
+  useEffect(() => {
+    if (!ready) return;
+    if (!signedIn) {
+      clearRecap();
+      return;
+    }
+    refreshRecap();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshRecap();
+    });
+    return () => subscription.remove();
+  }, [ready, signedIn]);
+
   if (loading) return null;
 
-  const signedIn = !!session;
   return (
     <>
       <StatusBar style="light" />
@@ -69,6 +85,10 @@ function RootNavigator() {
           />
           <Stack.Screen
             name="calendar"
+            options={{ contentStyle: { backgroundColor: todoColors.background } }}
+          />
+          <Stack.Screen
+            name="settings"
             options={{ contentStyle: { backgroundColor: todoColors.background } }}
           />
           <Stack.Screen name="skill/[id]" />
