@@ -90,9 +90,9 @@ export default function CalendarScreen() {
         <View style={styles.header}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Home"
+            accessibilityLabel="Back to Todo"
             hitSlop={12}
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/todo'))}>
             <ChevronLeft size={26} color={todoColors.text} />
           </Pressable>
           <Text style={styles.title}>Calendar</Text>

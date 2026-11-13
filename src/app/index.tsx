@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { CalendarDays, Check, ChevronRight, LogOut } from 'lucide-react-native';
+import { Check, ChevronRight, LogOut } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -68,27 +68,7 @@ export default function Home() {
               </View>
               <View style={styles.cardInfo}>
                 <Text style={styles.todoTitle}>Todo</Text>
-                <Text style={styles.todoSubtitle}>Things to do</Text>
-              </View>
-              <ChevronRight size={26} color={todoColors.textMuted} />
-            </View>
-          </Pressable>
-
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open Calendar"
-            onPress={() => {
-              haptics.tap();
-              router.push('/calendar');
-            }}
-            style={({ pressed }) => [styles.cardPressable, pressed && styles.pressed]}>
-            <View style={styles.todoCard}>
-              <View style={styles.todoBadge}>
-                <CalendarDays size={28} color={todoColors.text} />
-              </View>
-              <View style={styles.cardInfo}>
-                <Text style={styles.todoTitle}>Calendar</Text>
-                <Text style={styles.todoSubtitle}>Appointments and events</Text>
+                <Text style={styles.todoSubtitle}>Things to do and calendar</Text>
               </View>
               <ChevronRight size={26} color={todoColors.textMuted} />
             </View>

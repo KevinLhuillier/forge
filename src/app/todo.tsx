@@ -1,6 +1,6 @@
-import { useRouter } from 'expo-router';
-import { Check, ChevronLeft, Plus } from 'lucide-react-native';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { CalendarDays, Check, ChevronLeft, Plus } from 'lucide-react-native';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -38,13 +38,6 @@ import { haptics, spacing, todoColors, todoFonts } from '@/theme';
 
 const SAVE_ERROR = "Couldn't save. Check your connection and try again.";
 
-function todayLabel(): string {
-  const now = new Date();
-  const day = String(now.getDate()).padStart(2, '0');
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  return `${day}.${month}, ${now.toLocaleDateString('en-GB', { weekday: 'short' })}`;
-}
-
 /** 12.11 · 09:00 → 15.11 · 18:00, leaving out what isn't set or doesn't change. */
 function formatPlan(plan: TodoPlan): string {
   const withTime = (day: string, time: string | null) =>
@@ -72,6 +65,8 @@ export default function TodoScreen() {
   const [confirmList, setConfirmList] = useState(false);
   const [confirmTodo, setConfirmTodo] = useState<Todo | null>(null);
   const [dragging, setDragging] = useState(false);
+  // Set while the calendar is open on top: plans may change there.
+  const inCalendar = useRef(false);
 
   useEffect(() => {
     let stale = false;
@@ -89,6 +84,25 @@ export default function TodoScreen() {
       stale = true;
     };
   }, [attempt]);
+
+  // Back from the calendar: quietly pick up any plan moved or removed there.
+  useFocusEffect(
+    useCallback(() => {
+      if (!inCalendar.current) return;
+      inCalendar.current = false;
+      let stale = false;
+      fetchTodoData()
+        .then((data) => {
+          if (stale) return;
+          setLists(data.lists);
+          setTodos(data.todos);
+        })
+        .catch(() => {});
+      return () => {
+        stale = true;
+      };
+    }, []),
+  );
 
   const active = lists.find((list) => list.id === selectedId) ?? lists[0];
   // Still to do first, each group in the list's order.
@@ -237,8 +251,19 @@ export default function TodoScreen() {
             onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
             <ChevronLeft size={26} color={todoColors.text} />
           </Pressable>
-          <Text style={styles.today}>Today</Text>
-          <Text style={styles.date}>· {todayLabel()}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open Calendar"
+            hitSlop={8}
+            onPress={() => {
+              haptics.tap();
+              inCalendar.current = true;
+              router.push('/calendar');
+            }}
+            style={({ pressed }) => [styles.calendarLink, pressed && styles.pressed]}>
+            <CalendarDays size={20} color={todoColors.text} />
+            <Text style={styles.calendarText}>Calendar</Text>
+          </Pressable>
         </View>
         <View style={styles.divider} />
 
@@ -469,8 +494,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
-  today: { fontFamily: todoFonts.bold, fontSize: 18, color: todoColors.text },
-  date: { fontFamily: todoFonts.regular, fontSize: 13, color: todoColors.textMuted },
+  calendarLink: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 36 },
+  calendarText: { fontFamily: todoFonts.bold, fontSize: 18, color: todoColors.text },
+  pressed: { opacity: 0.6 },
   divider: {
     height: 1,
     marginHorizontal: spacing.lg,
